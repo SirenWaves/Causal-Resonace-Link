@@ -1,0 +1,114 @@
+import math
+import random
+import time
+
+# Symbols (for conceptual clarity, not used in code logic):
+# ζ = Oscillation (pulse frequency)
+# 𝛆 = Relational feedback (modulation amplitude)
+# c = Causal boundary (limits recursion depth and influence)
+
+class CNQNode:
+    def __init__(self, id, base_frequency, base_amplitude, causal_boundary):
+        self.id = id
+        self.zeta = base_frequency      # Oscillation frequency (Hz)
+        self.epsilon = base_amplitude   # Feedback amplitude (0-1)
+        self.c = causal_boundary        # Max recursion depth / causal constraint
+        self.state = 0.0                # Current oscillation phase/state
+        self.recursion_depth = 0        # Track current recursion depth
+        self.connections = []           # Linked CNQNodes
+        self.history = []               # Record state over time
+
+    def connect(self, other_node):
+        if other_node not in self.connections:
+            self.connections.append(other_node)
+
+    def oscillate(self, time_delta):
+        # Advance oscillation phase using frequency
+        self.state += 2 * math.pi * self.zeta * time_delta
+        self.state %= 2 * math.pi  # Keep in 0 to 2π range
+
+    def relational_feedback(self):
+        # Sum influence from connected nodes weighted by their states and amplitudes
+        influence = 0.0
+        for node in self.connections:
+            influence += math.sin(node.state) * node.epsilon
+        # Normalize by number of connections
+        if self.connections:
+            influence /= len(self.connections)
+        # Modulate own epsilon with feedback, limited by causal boundary
+        self.epsilon += 0.1 * influence
+        self.epsilon = max(0.0, min(1.0, self.epsilon))  # Clamp between 0 and 1
+
+    def causal_boundary_check(self):
+        # Prevent runaway recursion beyond causal boundary c
+        if self.recursion_depth > self.c:
+            return False
+        return True
+
+    def step(self, time_delta):
+        if not self.causal_boundary_check():
+            # Reset recursion depth to avoid collapse
+            self.recursion_depth = 0
+            self.epsilon *= 0.5  # Dampen feedback to stabilize
+            return
+
+        self.oscillate(time_delta)
+        self.relational_feedback()
+
+        # Log current state
+        self.history.append({
+            'phase': self.state,
+            'amplitude': self.epsilon,
+            'recursion_depth': self.recursion_depth,
+        })
+
+        # Recursively propagate oscillation with feedback
+        self.recursion_depth += 1
+        for node in self.connections:
+            node.recursion_depth = self.recursion_depth
+            node.step(time_delta)
+
+        self.recursion_depth -= 1  # Unwind recursion
+
+# Example instantiation and execution
+
+def run_cnq_simulation(duration_seconds=1.0, timestep=0.01):
+    # Create nodes with varying base frequencies and amplitudes
+    node_a = CNQNode('A', base_frequency=1.0, base_amplitude=0.5, causal_boundary=5)
+    node_b = CNQNode('B', base_frequency=1.5, base_amplitude=0.7, causal_boundary=5)
+    node_c = CNQNode('C', base_frequency=0.8, base_amplitude=0.6, causal_boundary=5)
+
+    # Connect nodes to form relational feedback loops
+    node_a.connect(node_b)
+    node_b.connect(node_c)
+    node_c.connect(node_a)
+
+    current_time = 0.0
+    while current_time < duration_seconds:
+        node_a.step(timestep)
+        current_time += timestep
+        time.sleep(0.001)  # Slow down for demonstration (remove in real runs)
+
+    # After simulation, print some history logs
+    print(f"Node A History (last 5 states): {node_a.history[-5:]}")
+    print(f"Node B History (last 5 states): {node_b.history[-5:]}")
+    print(f"Node C History (last 5 states): {node_c.history[-5:]}")
+
+if __name__ == '__main__':
+    run_cnq_simulation()
+
+
+----
+
+Explanation
+
+Each CNQNode models a node of oscillation (ζ) with a base frequency and feedback amplitude (𝛆), constrained by a causal boundary (c).
+
+Nodes connect and influence each other recursively via relational_feedback(), creating a dynamic oscillation lattice.
+
+The causal boundary limits recursion depth to avoid runaway complexity collapse, enforcing the Law of Causal Constraint.
+
+The simulation runs iteratively, evolving node states over time, embodying the perpetual oscillation, relational resonance, and recursive emergence laws.
+
+history logs allow later analysis of emergent patterns or lattice compression events.
+
